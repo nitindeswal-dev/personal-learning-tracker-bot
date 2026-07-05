@@ -36,7 +36,7 @@ load_dotenv()
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 COGNEE_API_KEY = os.environ.get("COGNEE_API_KEY", "")
-COGNEE_API_BASE_URL = os.environ.get("COGNEE_API_BASE_URL", "").rstrip("/")
+COGNEE_BASE_URL = os.environ.get("COGNEE_BASE_URL", "").rstrip("/")
 DB_PATH = os.environ.get("DB_PATH", "tracker.db")
 
 # Optional allowlist — empty = open access (anyone can use)
@@ -187,16 +187,16 @@ def _check_cognee_env() -> None:
         raise RuntimeError(
             "COGNEE_API_KEY is not set. Add it to .env (see .env.example)."
         )
-    if not COGNEE_API_BASE_URL:
+    if not COGNEE_BASE_URL:
         raise RuntimeError(
-            "COGNEE_API_BASE_URL is not set. Add your tenant URL to .env."
+            "COGNEE_BASE_URL is not set. Add your tenant URL to .env."
         )
 
 
 def remember_session(chat_id: int, topic_name: str, notes: str) -> dict[str, Any]:
     _check_cognee_env()
     resp = requests.post(
-        f"{COGNEE_API_BASE_URL}/api/v1/remember",
+        f"{COGNEE_BASE_URL}/api/v1/remember",
         headers={"X-Api-Key": COGNEE_API_KEY},
         files={"data": (None, notes)},
         data={
@@ -216,7 +216,7 @@ def remember_session(chat_id: int, topic_name: str, notes: str) -> dict[str, Any
 def ask_tracker(chat_id: int, question: str) -> str:
     _check_cognee_env()
     resp = requests.post(
-        f"{COGNEE_API_BASE_URL}/api/v1/recall",
+        f"{COGNEE_BASE_URL}/api/v1/recall",
         headers={"X-Api-Key": COGNEE_API_KEY, "Content-Type": "application/json"},
         json={
             "query": question,
