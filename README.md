@@ -10,7 +10,9 @@ pinned: false
 
 # 📚 Personal Learning Tracker — Telegram Bot
 
-A Telegram bot you message your study notes to. It answers questions grounded in what **you** actually studied, quizzes you on **your** material, and gets sharper about what you know over time — powered by [Cognee's](https://cognee.ai) memory lifecycle: `remember → recall → improve → forget`.
+**The Vision:** For this hackathon, we didn't want to build a complex, heavy web application that users open once and forget. We focused on extreme usability. We wanted to build something you can use **right now**, without downloading new apps or visiting websites that cause friction. 
+
+**The Solution:** An AI brain that lives directly inside your Telegram app, mixing seamlessly into your day-to-day routine. You text it your study notes, voice memos, or lecture PDFs like you're texting a friend. It remembers them forever using [Cognee's](https://cognee.ai) AI Graph Memory. Later, it proactively reminds you to study, answers your questions, and quizzes you strictly on your own material.
 
 Built for the [WeMakeDevs × Cognee Hackathon](https://www.wemakedevs.org/hackathons/cognee) — **Best Use of Cognee Cloud** track.
 
@@ -24,10 +26,11 @@ Built for the [WeMakeDevs × Cognee Hackathon](https://www.wemakedevs.org/hackat
 
 1. Tap **Start**
 2. `/newtopic React Hooks`
-3. `/log React Hooks` → send a few sentences of notes
+3. `/log React Hooks` → send a text message, attach a PDF, or send a Voice Note!
 4. `/ask What is useEffect?` → get an answer grounded in YOUR notes
 5. `/quiz React Hooks` → 3 multiple-choice questions from your notes
-6. `/reset` → wipe your Cognee memory
+6. `/remind React Hooks 20:00` → Sets a daily spaced-repetition reminder for 8 PM
+7. `/reset` → wipe your Cognee memory
 
 Every user gets their own Cognee dataset (keyed to their Telegram `chat_id`), so your notes are private to you.
 
@@ -53,9 +56,10 @@ Telegram user  →  Telegram servers  →  bot.py (long-polling)
 |---|---|---|
 | `/newtopic <name>` | Creates a topic locally | — |
 | `/topics` | Lists your topics + stats | — |
-| `/log <topic>` → send text/pdf | Saves text or parses Document to Cognee | `remember()` |
+| `/log <topic>` → send text/pdf/voice | Streams Text, Documents, or AssemblyAI transcribed Voice to Cognee | `remember()` |
 | `/ask <question>` | Answers from your notes | `recall()` |
 | `/quiz <topic>` | 3 MCQs from your material | `recall()` |
+| `/remind <topic> <HH:MM>` | Sets a daily spaced-repetition reminder | — |
 | *(after quiz)* | Feeds score back into Cognee | `remember()` |
 | `/reset` | Wipes your Cognee memory | `forget()` |
 
@@ -71,6 +75,7 @@ All Cognee lifecycle operations are seamlessly integrated.
 
 - `TELEGRAM_BOT_TOKEN` — message [@BotFather](https://t.me/BotFather) → `/newbot`
 - `COGNEE_API_KEY` — sign up at [cognee.ai](https://cognee.ai), use code `COGNEE-35` for free Developer plan
+- `ASSEMBLYAI_API_KEY` (Optional) — sign up at [assemblyai.com](https://www.assemblyai.com/) for Voice Note support
 
 **2. Setup**
 
