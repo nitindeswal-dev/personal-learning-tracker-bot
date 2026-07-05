@@ -803,23 +803,26 @@ async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 
+import socket
+
+# Apply DNS patch for HF Spaces blocking *.workers.dev
+_orig_getaddrinfo = socket.getaddrinfo
+
+def custom_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    host_str = host.decode('utf-8') if isinstance(host, bytes) else host
+    if host_str and host_str.endswith(".workers.dev"):
+        return _orig_getaddrinfo("104.21.72.19", port, family, type, proto, flags)
+    return _orig_getaddrinfo(host, port, family, type, proto, flags)
+
+socket.getaddrinfo = custom_getaddrinfo
+
 def build_application() -> Application:
     if not BOT_TOKEN:
         raise RuntimeError(
             "TELEGRAM_BOT_TOKEN is not set. Add it to .env (see .env.example)."
         )
 
-    from telegram.request import HTTPXRequest
-    # Explicit timeouts prevent the silent hang issue with proxies
-    request = HTTPXRequest(
-        connection_pool_size=8,
-        connect_timeout=15.0,
-        read_timeout=30.0,
-        write_timeout=30.0,
-        http_version="1.1",
-    )
-
-    builder = Application.builder().token(BOT_TOKEN).request(request)
+    builder = Application.builder().token(BOT_TOKEN)
     if TELEGRAM_PROXY_URL:
         builder = builder.base_url(f"{TELEGRAM_PROXY_URL}/bot")
         log.info("Using Telegram proxy: %s", TELEGRAM_PROXY_URL)
