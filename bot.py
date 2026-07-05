@@ -412,8 +412,8 @@ WELCOME_TEXT = (
     "3. `/ask What is useEffect?` — I'll answer from YOUR notes\n"
     "4. `/quiz React Hooks` — 3 multiple-choice questions on what you logged\n\n"
     "*Why this exists:* every LLM call is stateless — it forgets you the moment "
-    "the request ends. Cognee fixes that with a `remember → recall → improve → "
-    "forget` lifecycle, and this bot shows the whole cycle inside a normal "
+    "the request ends. Cognee fixes that with a `remember → recall → forget` "
+    "lifecycle, and this bot shows the whole cycle inside a normal "
     "Telegram chat. No web app, no login.\n\n"
     "Your data is isolated — every Telegram user gets their own Cognee dataset "
     "keyed to their `chat_id`. So your notes are *your* notes.\n\n"
@@ -829,7 +829,7 @@ async def handle_quiz_callback(
         text=(
             f"*Quiz complete: {score}/{total}* on *{topic_name}*.\n"
             f"{emoji_line}\n\n"
-            f"Feeding this result back into Cognee (remember + improve)…"
+            f"Feeding this result back into Cognee (remember)…"
         ),
         parse_mode=ParseMode.MARKDOWN,
     )
