@@ -886,6 +886,22 @@ def main() -> None:
     async def manual_polling():
         await app.initialize()
         await app.start()
+        
+        # Register commands with Telegram so they appear in the / menu
+        from telegram import BotCommand
+        commands = [
+            BotCommand("start", "Start the bot and see welcome message"),
+            BotCommand("help", "See the list of commands and how to use them"),
+            BotCommand("newtopic", "Create a new study topic"),
+            BotCommand("topics", "List all your topics"),
+            BotCommand("log", "Log notes/information for a topic"),
+            BotCommand("ask", "Ask a question about your logged notes"),
+            BotCommand("quiz", "Generate a quiz for a topic"),
+            BotCommand("reset", "Delete all your data (IRREVERSIBLE)"),
+            BotCommand("cancel", "Cancel current action"),
+        ]
+        await app.bot.set_my_commands(commands)
+        
         log.info("Started manual polling loop.")
         offset = 0
         while True:
