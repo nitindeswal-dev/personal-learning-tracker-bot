@@ -107,8 +107,8 @@ CREATE TABLE IF NOT EXISTS reminders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     chat_id INTEGER NOT NULL,
     topic_name TEXT NOT NULL,
-    remind_time TEXT NOT NULL,
-    last_sent_date TEXT
+    interval_hours INTEGER NOT NULL,
+    last_sent_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
 
@@ -512,21 +512,19 @@ async def cmd_remind(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     if not await check_allowed(update):
         return
     if len(context.args) < 2:
-        await update.message.reply_text("Usage: /remind <topic> <HH:MM>\nExample: /remind dsa 20:00")
+        await update.message.reply_text("Usage: /remind <topic> <hours>\nExample: /remind dsa 8")
         return
 
-    time_str = context.args[-1]
+    try:
+        hours = int(context.args[-1])
+        if hours <= 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text("Please provide a valid number of hours (e.g. 8)")
+        return
+
     topic_name = " ".join(context.args[:-1]).strip()
     chat_id = update.effective_chat.id
-
-    # Parse and normalize the time
-    import datetime
-    try:
-        parsed_time = datetime.datetime.strptime(time_str, "%H:%M")
-        normalized_time = parsed_time.strftime("%H:%M")
-    except ValueError:
-        await update.message.reply_text("Invalid time format! Please use HH:MM (e.g. 09:30 or 14:15)")
-        return
 
     topic = get_topic_by_name(chat_id, topic_name)
     if not topic:
@@ -534,14 +532,13 @@ async def cmd_remind(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
     with closing(db_conn()) as conn:
         conn.execute(
-            "INSERT INTO reminders (chat_id, topic_name, remind_time) VALUES (?, ?, ?)",
-            (chat_id, topic_name, normalized_time)
+            "INSERT INTO reminders (chat_id, topic_name, interval_hours) VALUES (?, ?, ?)",
+            (chat_id, topic_name, hours)
         )
         conn.commit()
         
-    server_time = datetime.datetime.now().strftime("%H:%M")
     await update.message.reply_text(
-        f"✅ Daily reminder set for *{_esc(topic_name)}* at {normalized_time}!\n\n_(Note: My internal server clock is currently at {server_time}. If you are in a different timezone, please adjust your reminder time accordingly!)_", 
+        f"✅ Spaced repetition set! I will remind you to review *{_esc(topic_name)}* every {hours} hour(s).", 
         parse_mode=ParseMode.MARKDOWN
     )
 
@@ -1017,14 +1014,9 @@ async def reminder_loop(app: Application) -> None:
     import datetime
     while True:
         try:
-            now = datetime.datetime.now()
-            current_time = now.strftime("%H:%M")
-            current_date = now.strftime("%Y-%m-%d")
-            
             with closing(db_conn()) as conn:
                 reminders = conn.execute(
-                    "SELECT * FROM reminders WHERE remind_time = ? AND (last_sent_date IS NULL OR last_sent_date != ?)",
-                    (current_time, current_date)
+                    "SELECT * FROM reminders WHERE (strftime('%s', CURRENT_TIMESTAMP) - strftime('%s', last_sent_time)) >= (interval_hours * 3600)"
                 ).fetchall()
                 
                 for r in reminders:
@@ -1034,12 +1026,12 @@ async def reminder_loop(app: Application) -> None:
                     try:
                         await app.bot.send_message(
                             chat_id=chat_id,
-                            text=f"⏰ **Daily Reminder!** Time to review *{_esc(topic_name)}*.\nType `/quiz {_esc(topic_name)}` to test your knowledge!",
+                            text=f"⏰ **Spaced Repetition!**\n\nIt has been {r['interval_hours']} hour(s).\nTime to review *{_esc(topic_name)}*.\nType `/quiz {_esc(topic_name)}` to test your knowledge!",
                             parse_mode=ParseMode.MARKDOWN
                         )
                         conn.execute(
-                            "UPDATE reminders SET last_sent_date = ? WHERE id = ?",
-                            (current_date, r["id"])
+                            "UPDATE reminders SET last_sent_time = CURRENT_TIMESTAMP WHERE id = ?",
+                            (r["id"],)
                         )
                         conn.commit()
                     except Exception as e:
@@ -1093,7 +1085,7 @@ def main() -> None:
             BotCommand("log", "Log notes/information for a topic"),
             BotCommand("ask", "Ask a question about your logged notes"),
             BotCommand("quiz", "Generate a quiz for a topic"),
-            BotCommand("remind", "Set a daily reminder (e.g. /remind dsa 20:00)"),
+            BotCommand("remind", "Set repetition interval (e.g. /remind dsa 8)"),
             BotCommand("reset", "Delete all your data (IRREVERSIBLE)"),
             BotCommand("cancel", "Cancel current action"),
         ]
