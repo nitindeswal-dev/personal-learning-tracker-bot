@@ -530,7 +530,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     )
     
     try:
-        file = await context.bot.get_file(doc.file_id)
+        file = await context.bot.get_file(doc.file_id, read_timeout=60, connect_timeout=60)
         file_bytes = await file.download_as_bytearray(read_timeout=60, connect_timeout=60)
         
         chat_id = update.effective_chat.id
@@ -575,7 +575,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         import assemblyai as aai
         aai.settings.api_key = ASSEMBLYAI_API_KEY
         
-        file = await context.bot.get_file(update.message.voice.file_id)
+        file = await context.bot.get_file(update.message.voice.file_id, read_timeout=60, connect_timeout=60)
         # Download strictly to memory/temp file
         voice_bytes = await file.download_as_bytearray(read_timeout=60, connect_timeout=60)
         
