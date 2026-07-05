@@ -22,7 +22,7 @@ Built for the [WeMakeDevs × Cognee Hackathon](https://www.wemakedevs.org/hackat
 
 ## Try it
 
-👉 [**Open in Telegram**](https://t.me/YOUR_BOT_USERNAME)
+👉 [**Open in Telegram**](https://t.me/learning_tracker_ai_bot)
 
 1. Tap **Start**
 2. `/newtopic React Hooks`
@@ -33,13 +33,7 @@ Built for the [WeMakeDevs × Cognee Hackathon](https://www.wemakedevs.org/hackat
 
 Every user gets their own Cognee dataset (keyed to their Telegram `chat_id`), so your notes are private to you.
 
----
 
-## Demo
-
-[Demo video placeholder — replace with YouTube/Loom link]
-
----
 
 ## How it works
 
@@ -61,7 +55,6 @@ Telegram user  →  Telegram servers  →  bot.py (long-polling)
 | *(after quiz)* | Feeds score back into Cognee | `remember()` |
 | `/reset` | Wipes your Cognee memory | `forget()` |
 
-All Cognee lifecycle operations are seamlessly integrated.
 
 **Why a Telegram bot?** Free UI, free per-user identity via `chat_id` (no auth code needed), and zero deploy risk — long-polling just works, no public URL required.
 
