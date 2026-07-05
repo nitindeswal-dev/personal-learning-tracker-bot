@@ -37,6 +37,7 @@ load_dotenv()
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 COGNEE_API_KEY = os.environ.get("COGNEE_API_KEY", "")
 COGNEE_BASE_URL = os.environ.get("COGNEE_BASE_URL", "").rstrip("/")
+ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "")
 DB_PATH = os.environ.get("DB_PATH", "tracker.db")
 
 # Optional allowlist — empty = open access (anyone can use)
@@ -582,6 +583,74 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         log.exception("handle_document failed")
         await update.message.reply_text(f"Cognee remember() failed for file: {e}")
 
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await check_allowed(update):
+        return
+
+    if not ASSEMBLYAI_API_KEY:
+        await update.message.reply_text("Voice notes are disabled: missing AssemblyAI API key.")
+        return
+
+    topic_id = context.user_data.get("awaiting_notes_for")
+    topic_name = context.user_data.get("awaiting_notes_topic_name")
+    if not topic_id or not topic_name:
+        await update.message.reply_text("I didn't recognize that. Try /log <topic> first.")
+        return
+
+    await update.message.reply_text(
+        f"🎙️ Transcribing voice note via AssemblyAI and sending to Cognee (topic: {_esc(topic_name)})...",
+        parse_mode=ParseMode.MARKDOWN
+    )
+    
+    try:
+        import assemblyai as aai
+        aai.settings.api_key = ASSEMBLYAI_API_KEY
+        
+        file = await context.bot.get_file(update.message.voice.file_id)
+        # Download strictly to memory/temp file
+        voice_bytes = await file.download_as_bytearray()
+        
+        # Write bytes to a temporary file for AssemblyAI since it needs a file path or URL
+        temp_path = f"temp_voice_{update.message.voice.file_id}.ogg"
+        with open(temp_path, "wb") as f:
+            f.write(voice_bytes)
+            
+        def transcribe_audio():
+            config = aai.TranscriptionConfig(speech_models=["universal-3-5-pro", "universal-2"])
+            transcript = aai.Transcriber(config=config).transcribe(temp_path)
+            if transcript.status == aai.TranscriptStatus.error:
+                raise RuntimeError(transcript.error)
+            return transcript.text
+            
+        text = await asyncio.to_thread(transcribe_audio)
+        
+        # Clean up temp file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+            
+        if not text:
+            await update.message.reply_text("Could not transcribe any speech from the audio.")
+            return
+            
+        chat_id = update.effective_chat.id
+        await asyncio.to_thread(save_session, topic_id, text)
+        await asyncio.to_thread(
+            remember_session, 
+            chat_id=chat_id, 
+            topic_name=topic_name, 
+            notes=text
+        )
+        
+        del context.user_data["awaiting_notes_for"]
+        del context.user_data["awaiting_notes_topic_name"]
+        await update.message.reply_text(
+            f"✅ **Transcribed & Logged:**\n_{_esc(text)}_\n\nDone — Cognee remembered your notes for {topic_name}.",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        log.exception("handle_voice failed")
+        await update.message.reply_text(f"Voice processing failed: {e}")
+
 async def handle_plain_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await check_allowed(update):
         return
@@ -925,6 +994,7 @@ def build_application() -> Application:
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plain_text))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+    app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     return app
 
