@@ -487,7 +487,8 @@ async def cmd_log(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     topic = get_topic_by_name(chat_id, name)
     if not topic:
-        topic = create_topic(chat_id, name)
+        create_topic(chat_id, name)
+        topic = get_topic_by_name(chat_id, name)
 
     context.user_data["awaiting_notes_for"] = topic["id"]
     context.user_data["awaiting_notes_topic_name"] = topic["name"]
@@ -584,7 +585,8 @@ async def cmd_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     topic = get_topic_by_name(chat_id, name)
     if not topic:
-        topic = create_topic(chat_id, name)
+        create_topic(chat_id, name)
+        topic = get_topic_by_name(chat_id, name)
 
     await update.message.reply_text(
         f"Generating 3 quiz questions for *{_esc(topic['name'])}*…",
@@ -718,7 +720,7 @@ async def handle_quiz_callback(
         )
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Done — Cognee has logged your quiz result and run improve(). "
+            text="Done — Cognee has logged your quiz result. "
             "Your future /ask answers should reflect what you actually know.",
         )
     except Exception as e:
