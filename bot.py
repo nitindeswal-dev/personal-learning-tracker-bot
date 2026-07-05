@@ -45,6 +45,9 @@ ALLOWED_CHAT_IDS: set[int] = {
 }
 OPEN_MODE = not ALLOWED_CHAT_IDS
 
+# Reverse proxy for Telegram API (needed on HF Spaces which blocks api.telegram.org)
+TELEGRAM_PROXY_URL = os.environ.get("TELEGRAM_PROXY_URL", "").rstrip("/")
+
 RATE_LIMIT_PER_MIN = int(os.environ.get("RATE_LIMIT_PER_MIN", "20"))
 _user_msg_times: dict[int, deque[float]] = defaultdict(deque)
 
@@ -805,7 +808,11 @@ def build_application() -> Application:
             "TELEGRAM_BOT_TOKEN is not set. Add it to .env (see .env.example)."
         )
 
-    app = Application.builder().token(BOT_TOKEN).build()
+    builder = Application.builder().token(BOT_TOKEN)
+    if TELEGRAM_PROXY_URL:
+        builder = builder.base_url(f"{TELEGRAM_PROXY_URL}/bot")
+        log.info("Using Telegram proxy: %s", TELEGRAM_PROXY_URL)
+    app = builder.build()
 
 
     app.add_handler(CommandHandler("start", cmd_start))
