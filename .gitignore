@@ -1,0 +1,12 @@
+.env
+tracker.db
+tracker.db-journal
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.DS_Store
+.idea/
+.vscode/
+*.log
