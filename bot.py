@@ -580,7 +580,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         voice_bytes = await file.download_as_bytearray(read_timeout=60, connect_timeout=60)
         
         # Write bytes to a temporary file for AssemblyAI since it needs a file path or URL
-        temp_path = f"temp_voice_{update.message.voice.file_id}.ogg"
+        import tempfile
+        temp_dir = tempfile.gettempdir()
+        temp_path = os.path.join(temp_dir, f"temp_voice_{update.message.voice.file_id}.ogg")
         with open(temp_path, "wb") as f:
             f.write(voice_bytes)
             
