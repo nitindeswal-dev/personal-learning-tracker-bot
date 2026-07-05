@@ -487,10 +487,7 @@ async def cmd_log(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     topic = get_topic_by_name(chat_id, name)
     if not topic:
-        await update.message.reply_text(
-            f"Topic '{name}' not found. Create it first with /newtopic {name}"
-        )
-        return
+        topic = create_topic(chat_id, name)
 
     context.user_data["awaiting_notes_for"] = topic["id"]
     context.user_data["awaiting_notes_topic_name"] = topic["name"]
@@ -587,10 +584,7 @@ async def cmd_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     topic = get_topic_by_name(chat_id, name)
     if not topic:
-        await update.message.reply_text(
-            f"Topic '{name}' not found. Use /newtopic {name} first."
-        )
-        return
+        topic = create_topic(chat_id, name)
 
     await update.message.reply_text(
         f"Generating 3 quiz questions for *{_esc(topic['name'])}*…",
