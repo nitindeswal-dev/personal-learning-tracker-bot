@@ -193,12 +193,12 @@ def _check_cognee_env() -> None:
         )
 
 
-def remember_session(chat_id: int, topic_name: str, notes: str) -> dict[str, Any]:
+def remember_session(chat_id: int, topic_name: str, notes: str | bytes, file_name: str = "notes.txt") -> dict[str, Any]:
     _check_cognee_env()
     resp = requests.post(
         f"{COGNEE_BASE_URL}/api/v1/remember",
         headers={"X-Api-Key": COGNEE_API_KEY},
-        files={"data": ("notes.txt", notes)},
+        files={"data": (file_name, notes)},
         data={
             "datasetName": dataset_name_for(chat_id),
             "node_set": topic_name,
@@ -498,6 +498,57 @@ async def cmd_log(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         parse_mode=ParseMode.MARKDOWN,
     )
 
+
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await check_allowed(update):
+        return
+
+    if context.user_data.get("quiz"):
+        await update.message.reply_text(
+            "You have a quiz in progress — tap an answer button, or /cancel to abort."
+        )
+        return
+
+    topic_id = context.user_data.get("awaiting_notes_for")
+    topic_name = context.user_data.get("awaiting_notes_topic_name")
+    if not topic_id or not topic_name:
+        await update.message.reply_text(
+            "I didn't recognize that. Try /log <topic> first."
+        )
+        return
+
+    doc = update.message.document
+    if doc.file_size and doc.file_size > 10 * 1024 * 1024:
+        await update.message.reply_text("File is too large! Maximum 10MB supported.")
+        return
+
+    await update.message.reply_text(
+        f"Downloading {doc.file_name} and sending to Cognee (topic: {_esc(topic_name)})... This may take a minute!",
+        parse_mode=ParseMode.MARKDOWN
+    )
+    
+    try:
+        file = await context.bot.get_file(doc.file_id)
+        file_bytes = await file.download_as_bytearray()
+        
+        chat_id = update.effective_chat.id
+        await asyncio.to_thread(save_session, topic_id, f"Uploaded document: {doc.file_name}")
+        await asyncio.to_thread(
+            remember_session, 
+            chat_id=chat_id, 
+            topic_name=topic_name, 
+            notes=bytes(file_bytes), 
+            file_name=doc.file_name
+        )
+        
+        del context.user_data["awaiting_notes_for"]
+        del context.user_data["awaiting_notes_topic_name"]
+        await update.message.reply_text(
+            f"Done — Cognee remembered your document for {topic_name}. Try /ask or /quiz {topic_name} now."
+        )
+    except Exception as e:
+        log.exception("handle_document failed")
+        await update.message.reply_text(f"Cognee remember() failed for file: {e}")
 
 async def handle_plain_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await check_allowed(update):
@@ -840,6 +891,7 @@ def build_application() -> Application:
 
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plain_text))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
     return app
 
