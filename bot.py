@@ -519,6 +519,15 @@ async def cmd_remind(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     topic_name = " ".join(context.args[:-1]).strip()
     chat_id = update.effective_chat.id
 
+    # Parse and normalize the time
+    import datetime
+    try:
+        parsed_time = datetime.datetime.strptime(time_str, "%H:%M")
+        normalized_time = parsed_time.strftime("%H:%M")
+    except ValueError:
+        await update.message.reply_text("Invalid time format! Please use HH:MM (e.g. 09:30 or 14:15)")
+        return
+
     topic = get_topic_by_name(chat_id, topic_name)
     if not topic:
         create_topic(chat_id, topic_name)
@@ -526,11 +535,15 @@ async def cmd_remind(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     with closing(db_conn()) as conn:
         conn.execute(
             "INSERT INTO reminders (chat_id, topic_name, remind_time) VALUES (?, ?, ?)",
-            (chat_id, topic_name, time_str)
+            (chat_id, topic_name, normalized_time)
         )
         conn.commit()
-
-    await update.message.reply_text(f"✅ Daily reminder set for *{_esc(topic_name)}* at {time_str}!", parse_mode=ParseMode.MARKDOWN)
+        
+    server_time = datetime.datetime.now().strftime("%H:%M")
+    await update.message.reply_text(
+        f"✅ Daily reminder set for *{_esc(topic_name)}* at {normalized_time}!\n\n_(Note: My internal server clock is currently at {server_time}. If you are in a different timezone, please adjust your reminder time accordingly!)_", 
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await check_allowed(update):
