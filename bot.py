@@ -878,8 +878,14 @@ def main() -> None:
     app = build_application()
     log.info("Starting long-polling bot. Press Ctrl+C to stop.")
     # Rely on completely default polling settings to avoid any serialization/timeout
-    # mismatch with the Cloudflare Worker.
-    app.run_polling(drop_pending_updates=False)
+    app.run_polling(
+        drop_pending_updates=False,
+        timeout=20,
+        connect_timeout=30.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        pool_timeout=30.0,
+    )
 
 
 if __name__ == "__main__":
