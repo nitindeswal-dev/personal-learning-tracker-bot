@@ -280,7 +280,7 @@ def generate_quiz(chat_id: int, topic_name: str) -> list[dict] | None:
     )
     resp.raise_for_status()
     raw = resp.json()
-    text = raw if isinstance(raw, str) else str(raw)
+    text = _extract_answer_text(raw)
 
 
     start, end = text.find("["), text.rfind("]")
