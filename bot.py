@@ -932,7 +932,13 @@ def build_application() -> Application:
             "TELEGRAM_BOT_TOKEN is not set. Add it to .env (see .env.example)."
         )
 
-    builder = Application.builder().token(BOT_TOKEN)
+    builder = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .connect_timeout(60.0)
+        .read_timeout(60.0)
+        .write_timeout(60.0)
+    )
     if TELEGRAM_PROXY_URL:
         builder = builder.base_url(f"{TELEGRAM_PROXY_URL}/bot")
         builder = builder.base_file_url(f"{TELEGRAM_PROXY_URL}/file/bot")
