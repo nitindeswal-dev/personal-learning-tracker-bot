@@ -862,7 +862,12 @@ def main() -> None:
 
     app = build_application()
     log.info("Starting long-polling bot. Press Ctrl+C to stop.")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Cloudflare Workers drop long-lived idle connections. We lower the polling
+    # timeout from the default 50s to 20s so the connection recycles safely.
+    app.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        timeout=20,
+    )
 
 
 if __name__ == "__main__":
