@@ -335,19 +335,6 @@ def submit_quiz_feedback(
     except requests.RequestException as e:
         log.warning("submit_quiz_feedback: remember() failed: %s", e)
 
-    try:
-        requests.post(
-            f"{COGNEE_BASE_URL}/api/v1/improve",
-            headers={"X-Api-Key": COGNEE_API_KEY, "Content-Type": "application/json"},
-            json={
-                "dataset_name": dataset_name_for(chat_id),
-                "run_in_background": True,
-            },
-            timeout=120,
-        ).raise_for_status()
-    except requests.RequestException as e:
-        log.warning("submit_quiz_feedback: improve() failed: %s", e)
-
 
 def reset_memory(chat_id: int) -> None:
     _check_cognee_env()
