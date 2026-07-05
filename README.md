@@ -29,8 +29,7 @@ Built for the [WeMakeDevs × Cognee Hackathon](https://www.wemakedevs.org/hackat
 3. `/log React Hooks` → send a text message, attach a PDF, or send a Voice Note!
 4. `/ask What is useEffect?` → get an answer grounded in YOUR notes
 5. `/quiz React Hooks` → 3 multiple-choice questions from your notes
-6. `/remind React Hooks 8` → Sets a spaced-repetition reminder for every 8 hours
-7. `/reset` → wipe your Cognee memory
+6. `/reset` → wipe your Cognee memory
 
 Every user gets their own Cognee dataset (keyed to their Telegram `chat_id`), so your notes are private to you.
 
@@ -59,7 +58,6 @@ Telegram user  →  Telegram servers  →  bot.py (long-polling)
 | `/log <topic>` → send text/pdf/voice | Streams Text, Documents, or AssemblyAI transcribed Voice to Cognee | `remember()` |
 | `/ask <question>` | Answers from your notes | `recall()` |
 | `/quiz <topic>` | 3 MCQs from your material | `recall()` |
-| `/remind <topic> <hours>` | Sets a spaced-repetition interval reminder | — |
 | *(after quiz)* | Feeds score back into Cognee | `remember()` |
 | `/reset` | Wipes your Cognee memory | `forget()` |
 

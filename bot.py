@@ -103,13 +103,6 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS reminders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    chat_id INTEGER NOT NULL,
-    topic_name TEXT NOT NULL,
-    interval_hours INTEGER NOT NULL,
-    last_sent_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 """
 
 
@@ -507,40 +500,6 @@ async def cmd_log(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         parse_mode=ParseMode.MARKDOWN,
     )
 
-
-async def cmd_remind(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await check_allowed(update):
-        return
-    if len(context.args) < 2:
-        await update.message.reply_text("Usage: /remind <topic> <hours>\nExample: /remind dsa 8")
-        return
-
-    try:
-        hours = int(context.args[-1])
-        if hours <= 0:
-            raise ValueError
-    except ValueError:
-        await update.message.reply_text("Please provide a valid number of hours (e.g. 8)")
-        return
-
-    topic_name = " ".join(context.args[:-1]).strip()
-    chat_id = update.effective_chat.id
-
-    topic = get_topic_by_name(chat_id, topic_name)
-    if not topic:
-        create_topic(chat_id, topic_name)
-
-    with closing(db_conn()) as conn:
-        conn.execute(
-            "INSERT INTO reminders (chat_id, topic_name, interval_hours) VALUES (?, ?, ?)",
-            (chat_id, topic_name, hours)
-        )
-        conn.commit()
-        
-    await update.message.reply_text(
-        f"✅ Spaced repetition set! I will remind you to review *{_esc(topic_name)}* every {hours} hour(s).", 
-        parse_mode=ParseMode.MARKDOWN
-    )
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await check_allowed(update):
@@ -989,7 +948,6 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("log", cmd_log))
     app.add_handler(CommandHandler("ask", cmd_ask))
     app.add_handler(CommandHandler("quiz", cmd_quiz))
-    app.add_handler(CommandHandler("remind", cmd_remind))
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CommandHandler("cancel", cmd_cancel))
 
@@ -1008,39 +966,6 @@ def build_application() -> Application:
 
     return app
 
-
-async def reminder_loop(app: Application) -> None:
-    """Background task to send daily reminders."""
-    import datetime
-    while True:
-        try:
-            with closing(db_conn()) as conn:
-                reminders = conn.execute(
-                    "SELECT * FROM reminders WHERE (strftime('%s', CURRENT_TIMESTAMP) - strftime('%s', last_sent_time)) >= (interval_hours * 3600)"
-                ).fetchall()
-                
-                for r in reminders:
-                    chat_id = r["chat_id"]
-                    topic_name = r["topic_name"]
-                    
-                    try:
-                        await app.bot.send_message(
-                            chat_id=chat_id,
-                            text=f"⏰ **Spaced Repetition!**\n\nIt has been {r['interval_hours']} hour(s).\nTime to review *{_esc(topic_name)}*.\nType `/quiz {_esc(topic_name)}` to test your knowledge!",
-                            parse_mode=ParseMode.MARKDOWN
-                        )
-                        conn.execute(
-                            "UPDATE reminders SET last_sent_time = CURRENT_TIMESTAMP WHERE id = ?",
-                            (r["id"],)
-                        )
-                        conn.commit()
-                    except Exception as e:
-                        log.error(f"Failed to send reminder: {e}")
-                        
-        except Exception as e:
-            log.error(f"Reminder loop error: {e}")
-            
-        await asyncio.sleep(60)
 
 def main() -> None:
     init_db()
@@ -1072,9 +997,6 @@ def main() -> None:
         await app.initialize()
         await app.start()
         
-        # Start the reminder loop
-        asyncio.create_task(reminder_loop(app))
-        
         # Register commands with Telegram so they appear in the / menu
         from telegram import BotCommand
         commands = [
@@ -1085,7 +1007,6 @@ def main() -> None:
             BotCommand("log", "Log notes/information for a topic"),
             BotCommand("ask", "Ask a question about your logged notes"),
             BotCommand("quiz", "Generate a quiz for a topic"),
-            BotCommand("remind", "Set repetition interval (e.g. /remind dsa 8)"),
             BotCommand("reset", "Delete all your data (IRREVERSIBLE)"),
             BotCommand("cancel", "Cancel current action"),
         ]
