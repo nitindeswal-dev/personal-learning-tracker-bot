@@ -809,7 +809,17 @@ def build_application() -> Application:
             "TELEGRAM_BOT_TOKEN is not set. Add it to .env (see .env.example)."
         )
 
-    builder = Application.builder().token(BOT_TOKEN)
+    from telegram.request import HTTPXRequest
+    # Explicit timeouts prevent the silent hang issue with proxies
+    request = HTTPXRequest(
+        connection_pool_size=8,
+        connect_timeout=15.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        http_version="1.1",
+    )
+
+    builder = Application.builder().token(BOT_TOKEN).request(request)
     if TELEGRAM_PROXY_URL:
         builder = builder.base_url(f"{TELEGRAM_PROXY_URL}/bot")
         log.info("Using Telegram proxy: %s", TELEGRAM_PROXY_URL)
