@@ -878,14 +878,26 @@ def main() -> None:
     app = build_application()
     log.info("Starting long-polling bot. Press Ctrl+C to stop.")
     # Rely on completely default polling settings to avoid any serialization/timeout
-    app.run_polling(
-        drop_pending_updates=False,
-        timeout=20,
-        connect_timeout=30.0,
-        read_timeout=30.0,
-        write_timeout=30.0,
-        pool_timeout=30.0,
-    )
+    # Run manual polling to bypass the PTB Updater connection logic which is failing
+    # with Cloudflare Workers' TLS handshake on HF Spaces.
+    async def manual_polling():
+        await app.initialize()
+        await app.start()
+        log.info("Started manual polling loop.")
+        offset = 0
+        while True:
+            try:
+                # Use short timeout for Cloudflare Workers
+                updates = await app.bot.get_updates(offset=offset, timeout=10)
+                for update in updates:
+                    await app.process_update(update)
+                    offset = update.update_id + 1
+            except Exception as e:
+                log.error("Manual polling error: %s", e)
+                await asyncio.sleep(2)
+                
+    import asyncio
+    asyncio.run(manual_polling())
 
 
 if __name__ == "__main__":
