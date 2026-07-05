@@ -10,9 +10,9 @@ pinned: false
 
 # 📚 Personal Learning Tracker — Telegram Bot
 
-**The Vision:** For this hackathon, we didn't want to build a complex, heavy web application that users open once and forget. We focused on extreme usability. We wanted to build something you can use **right now**, without downloading new apps or visiting websites that cause friction. 
+**The Vision:** To build a learning tool with zero friction. Instead of a complex web app, this project provides an AI assistant that lives directly inside Telegram.
 
-**The Solution:** An AI brain that lives directly inside your Telegram app, mixing seamlessly into your day-to-day routine. You text it your study notes, voice memos, or lecture PDFs like you're texting a friend. It remembers them forever using [Cognee's](https://cognee.ai) AI Graph Memory. Later, it proactively reminds you to study, answers your questions, and quizzes you strictly on your own material.
+**The Solution:** You message the bot your study notes, lecture PDFs, or Voice Notes. It processes the information and remembers it permanently using [Cognee's](https://cognee.ai) AI Graph Memory. Later, you can ask it questions or generate personalized quizzes based strictly on your own material.
 
 Built for the [WeMakeDevs × Cognee Hackathon](https://www.wemakedevs.org/hackathons/cognee) — **Best Use of Cognee Cloud** track.
 
@@ -100,9 +100,9 @@ python bot.py                   # starts the bot
 3. Add `TELEGRAM_BOT_TOKEN`, `COGNEE_API_KEY`, and `COGNEE_BASE_URL` as **Secrets** in Space Settings
 4. It builds and starts automatically — check the Logs tab
 
-**Keeping it awake 24/7 (Advanced HF Tip):**
-HuggingFace Spaces eventually sleep due to inactivity. We engineered a way around this for 100% free hosting:
-1. The `Dockerfile` runs our custom `keep_alive.py` HTTP server on port 7860 in the background.
+**Keeping it awake 24/7:**
+HuggingFace Spaces eventually sleep due to inactivity. To prevent this for free hosting:
+1. The `Dockerfile` runs a custom `keep_alive.py` HTTP server on port 7860.
 2. You simply set up a free [Cloudflare Worker](https://workers.cloudflare.com/) with a Cron Trigger (e.g. `0 */5 * * *`) that pings your Space URL (`https://your-username-spacename.hf.space`).
 3. The Space never sleeps, and your Telegram bot stays online forever. If HF encounters TLS blocking with Telegram API, you can also inject a `TELEGRAM_PROXY_URL` in your HF secrets to instantly route around it!
 
