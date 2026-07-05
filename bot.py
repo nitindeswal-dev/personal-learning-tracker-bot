@@ -198,7 +198,7 @@ def remember_session(chat_id: int, topic_name: str, notes: str) -> dict[str, Any
     resp = requests.post(
         f"{COGNEE_BASE_URL}/api/v1/remember",
         headers={"X-Api-Key": COGNEE_API_KEY},
-        files={"data": (None, notes)},
+        files={"data": ("notes.txt", notes)},
         data={
             "datasetName": dataset_name_for(chat_id),
             "node_set": topic_name,
@@ -324,7 +324,7 @@ def submit_quiz_feedback(
         requests.post(
             f"{COGNEE_BASE_URL}/api/v1/remember",
             headers={"X-Api-Key": COGNEE_API_KEY},
-            files={"data": (None, summary)},
+            files={"data": ("quiz_feedback.txt", summary)},
             data={
                 "datasetName": dataset_name_for(chat_id),
                 "node_set": topic_name,
