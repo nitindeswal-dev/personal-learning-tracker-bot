@@ -1,104 +1,36 @@
 """
-Quick sanity test for Cognee API calls.
-Run this before the bot to make sure your API key works.
-
-Usage: python scripts/test_cognee.py
+Quick sanity test for Cognee Cloud API.
+Run this to make sure your API key and Tenant URL are correct.
 """
-
-from __future__ import annotations
-
 import os
 import sys
-import time
-
-# Allow `from bot import ...` when running from project root.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+import requests
 from dotenv import load_dotenv
-from bot import (
-    ask_tracker,
-    dataset_name_for,
-    generate_quiz,
-    remember_session,
-    reset_memory,
-    submit_quiz_feedback,
-)
 
-TEST_CHAT_ID = 999_999_999  # isolated dataset just for this test
-TEST_TOPIC = "TestTopic"
-
-
-def banner(msg: str) -> None:
-    print("\n" + "=" * 60)
-    print(msg)
-    print("=" * 60)
-
-
-def main() -> None:
+def main():
     load_dotenv()
-    if not os.environ.get("COGNEE_API_KEY"):
-        print("ERROR: COGNEE_API_KEY is not set. Put it in .env first.")
+    api_key = os.environ.get("COGNEE_API_KEY")
+    base_url = os.environ.get("COGNEE_BASE_URL", "").rstrip("/")
+    
+    if not api_key or not base_url:
+        print("ERROR: COGNEE_API_KEY or COGNEE_BASE_URL is missing in .env")
         sys.exit(1)
-
-    print(f"Using dataset: {dataset_name_for(TEST_CHAT_ID)}")
-    print(f"Using base URL: {os.environ.get('COGNEE_API_BASE_URL', 'https://api.cognee.ai')}")
-
-    # 1) remember()
-    banner("STEP 1: remember()")
-    notes = (
-        "Photosynthesis is the process by which green plants use sunlight to "
-        "synthesize foods with carbon dioxide and water. The reaction occurs "
-        "in the chloroplasts and produces glucose and oxygen as byproducts."
-    )
+        
+    print(f"Testing Cognee Connection to: {base_url}")
+    
     try:
-        result = remember_session(TEST_CHAT_ID, TEST_TOPIC, notes)
-        print("OK:", result)
-    except Exception as e:
-        print("FAILED:", e)
-        sys.exit(1)
-
-    # Give Cognee a moment to ingest the memory before we query it.
-    print("\nWaiting 10s for Cognee to process the memory…")
-    time.sleep(10)
-
-    # 2) recall()
-    banner("STEP 2: recall() / ask_tracker()")
-    try:
-        answer = ask_tracker(TEST_CHAT_ID, "What does photosynthesis produce?")
-        print("ANSWER:", answer)
-    except Exception as e:
-        print("FAILED:", e)
-
-    # 3) generate_quiz()
-    banner("STEP 3: generate_quiz()")
-    try:
-        quiz = generate_quiz(TEST_CHAT_ID, TEST_TOPIC)
-        if quiz is None:
-            print("Quiz generation returned None (parsing failed or no data).")
+        resp = requests.get(
+            f"{base_url}/api/v1/datasets/",
+            headers={"X-Api-Key": api_key},
+            timeout=10
+        )
+        if resp.status_code == 200:
+            print("✅ SUCCESS! Connected to Cognee Cloud.")
+            print(f"Datasets found: {len(resp.json())}")
         else:
-            import json
-            print(json.dumps(quiz, indent=2, ensure_ascii=False))
+            print(f"❌ FAILED! Status: {resp.status_code}\n{resp.text}")
     except Exception as e:
-        print("FAILED:", e)
-
-    # 4) submit_quiz_feedback()
-    banner("STEP 4: submit_quiz_feedback()")
-    try:
-        submit_quiz_feedback(TEST_CHAT_ID, TEST_TOPIC, score=2, total=3, wrong=["Q3"])
-        print("OK (no exception).")
-    except Exception as e:
-        print("FAILED:", e)
-
-    # 5) forget() — clean up the test dataset
-    banner("STEP 5: forget() / reset_memory()")
-    try:
-        reset_memory(TEST_CHAT_ID)
-        print("OK — test dataset wiped.")
-    except Exception as e:
-        print("FAILED:", e)
-
-    print("\nDone. If steps 1-3 worked, the bot is good to go.")
-
+        print(f"❌ FAILED to connect: {e}")
 
 if __name__ == "__main__":
     main()
