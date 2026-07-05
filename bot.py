@@ -54,7 +54,7 @@ _user_msg_times: dict[int, deque[float]] = defaultdict(deque)
 
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    level=logging.INFO,
+    level=logging.DEBUG,
 )
 log = logging.getLogger("learning_tracker")
 
@@ -877,12 +877,9 @@ def main() -> None:
 
     app = build_application()
     log.info("Starting long-polling bot. Press Ctrl+C to stop.")
-    # Cloudflare Workers drop long-lived idle connections. We lower the polling
-    # timeout from the default 50s to 20s so the connection recycles safely.
-    app.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        timeout=20,
-    )
+    # Rely on completely default polling settings to avoid any serialization/timeout
+    # mismatch with the Cloudflare Worker.
+    app.run_polling(drop_pending_updates=False)
 
 
 if __name__ == "__main__":
