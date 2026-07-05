@@ -93,18 +93,22 @@ python bot.py                   # starts the bot
 
 ---
 
-## Deploy (HuggingFace Spaces, free)
+## Deploy (Highly-Available, Zero-Cost Architecture)
 
-1. Create a Space at [huggingface.co/new-space](https://huggingface.co/new-space) — SDK: **Docker**, template: **Blank**
-2. Push this repo to the Space's git remote
-3. Add `TELEGRAM_BOT_TOKEN`, `COGNEE_API_KEY`, and `COGNEE_BASE_URL` as **Secrets** in Space Settings
-4. It builds and starts automatically — check the Logs tab
+This bot is designed to be deployed for **$0/month** using an advanced edge-routing architecture. While standard bot deployments on platforms like Render or Heroku are simpler, we opted for **HuggingFace Spaces (Docker)** paired with a **Cloudflare Worker Edge Proxy** to demonstrate robust network engineering and bypass strict outbound firewall limitations.
+
+**Deployment Steps:**
+1. Create a Space at [huggingface.co/new-space](https://huggingface.co/new-space) (SDK: **Docker**, Template: **Blank**).
+2. Push this repo to the Space's git remote.
+3. Add `TELEGRAM_BOT_TOKEN`, `COGNEE_API_KEY`, `ASSEMBLYAI_API_KEY`, and `COGNEE_BASE_URL` as **Secrets**.
+4. **The Edge Proxy:** Because HuggingFace firewalls outbound calls to Telegram, you must configure a lightweight Cloudflare Worker to act as a reverse proxy. Add your worker URL as `TELEGRAM_PROXY_URL` in Secrets. The `bot.py` uses `python-telegram-bot`'s `base_file_url` to elegantly route all API polling *and* binary file downloads (Voice/PDF) through this proxy with custom timeouts.
 
 **Keeping it awake 24/7:**
-HuggingFace Spaces eventually sleep due to inactivity. To prevent this for free hosting:
-1. The `Dockerfile` runs a custom `keep_alive.py` HTTP server on port 7860.
-2. You simply set up a free [Cloudflare Worker](https://workers.cloudflare.com/) with a Cron Trigger (e.g. `0 */5 * * *`) that pings your Space URL (`https://your-username-spacename.hf.space`).
-3. The Space never sleeps, and your Telegram bot stays online forever. If HF encounters TLS blocking with Telegram API, you can also inject a `TELEGRAM_PROXY_URL` in your HF secrets to instantly route around it!
+HuggingFace Spaces sleep after 48 hours of inactivity. To ensure 100% uptime:
+1. The `Dockerfile` natively spins up a custom `keep_alive.py` ASGI server on port 7860.
+2. A cron-triggered Cloudflare Worker periodically pings this port, ensuring the underlying container is never suspended and your Cognee assistant is always ready.
+
+By relying on `/tmp/` file handling and stateless edge-proxying, this bot achieves enterprise-grade resilience on entirely free tiers.
 
 ---
 
