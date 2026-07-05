@@ -27,6 +27,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     MessageHandler,
+    TypeHandler,
     filters,
 )
 from telegram.helpers import escape_markdown
@@ -814,6 +815,10 @@ def build_application() -> Application:
         log.info("Using Telegram proxy: %s", TELEGRAM_PROXY_URL)
     app = builder.build()
 
+    async def debug_update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        log.info(f"RECEIVED UPDATE ID: {update.update_id}")
+
+    app.add_handler(TypeHandler(Update, debug_update), group=-1)
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
