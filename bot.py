@@ -36,7 +36,7 @@ load_dotenv()
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 COGNEE_API_KEY = os.environ.get("COGNEE_API_KEY", "")
-COGNEE_API_BASE_URL = os.environ.get("COGNEE_API_BASE_URL", "https://api.cognee.ai")
+COGNEE_API_BASE_URL = os.environ.get("COGNEE_API_BASE_URL", "").rstrip("/")
 DB_PATH = os.environ.get("DB_PATH", "tracker.db")
 
 # Optional allowlist — empty = open access (anyone can use)
@@ -186,6 +186,10 @@ def _check_cognee_env() -> None:
     if not COGNEE_API_KEY:
         raise RuntimeError(
             "COGNEE_API_KEY is not set. Add it to .env (see .env.example)."
+        )
+    if not COGNEE_API_BASE_URL:
+        raise RuntimeError(
+            "COGNEE_API_BASE_URL is not set. Add your tenant URL to .env."
         )
 
 
