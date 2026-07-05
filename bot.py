@@ -530,8 +530,8 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     )
     
     try:
-        file = await context.bot.get_file(doc.file_id, read_timeout=60, connect_timeout=60)
-        file_bytes = await file.download_as_bytearray()
+        file = await context.bot.get_file(doc.file_id)
+        file_bytes = await file.download_as_bytearray(read_timeout=60, connect_timeout=60)
         
         chat_id = update.effective_chat.id
         await asyncio.to_thread(save_session, topic_id, f"Uploaded document: {doc.file_name}")
@@ -575,9 +575,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         import assemblyai as aai
         aai.settings.api_key = ASSEMBLYAI_API_KEY
         
-        file = await context.bot.get_file(update.message.voice.file_id, read_timeout=60, connect_timeout=60)
+        file = await context.bot.get_file(update.message.voice.file_id)
         # Download strictly to memory/temp file
-        voice_bytes = await file.download_as_bytearray()
+        voice_bytes = await file.download_as_bytearray(read_timeout=60, connect_timeout=60)
         
         # Write bytes to a temporary file for AssemblyAI since it needs a file path or URL
         temp_path = f"temp_voice_{update.message.voice.file_id}.ogg"
@@ -933,7 +933,8 @@ def build_application() -> Application:
     builder = Application.builder().token(BOT_TOKEN)
     if TELEGRAM_PROXY_URL:
         builder = builder.base_url(f"{TELEGRAM_PROXY_URL}/bot")
-        log.info("Using Telegram proxy: %s", TELEGRAM_PROXY_URL)
+        builder = builder.base_file_url(f"{TELEGRAM_PROXY_URL}/file/bot")
+        log.info("Using Telegram proxy for API and files: %s", TELEGRAM_PROXY_URL)
     app = builder.build()
 
     async def debug_update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
