@@ -19,6 +19,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     RUN_KEEP_ALIVE=1 \
     KEEP_ALIVE_PORT=7860 \
+    DB_PATH=/tmp/tracker.db \
     HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
 
