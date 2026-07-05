@@ -53,13 +53,13 @@ Telegram user  →  Telegram servers  →  bot.py (long-polling)
 |---|---|---|
 | `/newtopic <name>` | Creates a topic locally | — |
 | `/topics` | Lists your topics + stats | — |
-| `/log <topic>` → send notes | Saves notes + sends to Cognee | `remember()` |
+| `/log <topic>` → send text/pdf | Saves text or parses Document to Cognee | `remember()` |
 | `/ask <question>` | Answers from your notes | `recall()` |
 | `/quiz <topic>` | 3 MCQs from your material | `recall()` |
-| *(after quiz)* | Feeds score back into Cognee | `remember()` + `improve()` |
+| *(after quiz)* | Feeds score back into Cognee | `remember()` |
 | `/reset` | Wipes your Cognee memory | `forget()` |
 
-All four Cognee lifecycle operations are used — not just one API call.
+All Cognee lifecycle operations are seamlessly integrated.
 
 **Why a Telegram bot?** Free UI, free per-user identity via `chat_id` (no auth code needed), and zero deploy risk — long-polling just works, no public URL required.
 
@@ -94,10 +94,14 @@ python bot.py                   # starts the bot
 
 1. Create a Space at [huggingface.co/new-space](https://huggingface.co/new-space) — SDK: **Docker**, template: **Blank**
 2. Push this repo to the Space's git remote
-3. Add `TELEGRAM_BOT_TOKEN` and `COGNEE_API_KEY` as **Secrets** in Space Settings
+3. Add `TELEGRAM_BOT_TOKEN`, `COGNEE_API_KEY`, and `COGNEE_BASE_URL` as **Secrets** in Space Settings
 4. It builds and starts automatically — check the Logs tab
 
-The Dockerfile runs `bot.py` + a tiny HTTP health-check server on port 7860 so HF Spaces stays awake.
+**Keeping it awake 24/7 (Advanced HF Tip):**
+HuggingFace Spaces eventually sleep due to inactivity. We engineered a way around this for 100% free hosting:
+1. The `Dockerfile` runs our custom `keep_alive.py` HTTP server on port 7860 in the background.
+2. You simply set up a free [Cloudflare Worker](https://workers.cloudflare.com/) with a Cron Trigger (e.g. `0 */5 * * *`) that pings your Space URL (`https://your-username-spacename.hf.space`).
+3. The Space never sleeps, and your Telegram bot stays online forever. If HF encounters TLS blocking with Telegram API, you can also inject a `TELEGRAM_PROXY_URL` in your HF secrets to instantly route around it!
 
 ---
 

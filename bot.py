@@ -101,6 +101,14 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
     total INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL,
+    topic_name TEXT NOT NULL,
+    remind_time TEXT NOT NULL,
+    last_sent_date TEXT
+);
 """
 
 
@@ -499,6 +507,30 @@ async def cmd_log(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+async def cmd_remind(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await check_allowed(update):
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /remind <topic> <HH:MM>\nExample: /remind dsa 20:00")
+        return
+
+    time_str = context.args[-1]
+    topic_name = " ".join(context.args[:-1]).strip()
+    chat_id = update.effective_chat.id
+
+    topic = get_topic_by_name(chat_id, topic_name)
+    if not topic:
+        create_topic(chat_id, topic_name)
+
+    with closing(db_conn()) as conn:
+        conn.execute(
+            "INSERT INTO reminders (chat_id, topic_name, remind_time) VALUES (?, ?, ?)",
+            (chat_id, topic_name, time_str)
+        )
+        conn.commit()
+
+    await update.message.reply_text(f"✅ Daily reminder set for *{_esc(topic_name)}* at {time_str}!", parse_mode=ParseMode.MARKDOWN)
+
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await check_allowed(update):
         return
@@ -878,6 +910,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("log", cmd_log))
     app.add_handler(CommandHandler("ask", cmd_ask))
     app.add_handler(CommandHandler("quiz", cmd_quiz))
+    app.add_handler(CommandHandler("remind", cmd_remind))
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CommandHandler("cancel", cmd_cancel))
 
@@ -895,6 +928,44 @@ def build_application() -> Application:
 
     return app
 
+
+async def reminder_loop(app: Application) -> None:
+    """Background task to send daily reminders."""
+    import datetime
+    while True:
+        try:
+            now = datetime.datetime.now()
+            current_time = now.strftime("%H:%M")
+            current_date = now.strftime("%Y-%m-%d")
+            
+            with closing(db_conn()) as conn:
+                reminders = conn.execute(
+                    "SELECT * FROM reminders WHERE remind_time = ? AND (last_sent_date IS NULL OR last_sent_date != ?)",
+                    (current_time, current_date)
+                ).fetchall()
+                
+                for r in reminders:
+                    chat_id = r["chat_id"]
+                    topic_name = r["topic_name"]
+                    
+                    try:
+                        await app.bot.send_message(
+                            chat_id=chat_id,
+                            text=f"⏰ **Daily Reminder!** Time to review *{_esc(topic_name)}*.\nType `/quiz {_esc(topic_name)}` to test your knowledge!",
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                        conn.execute(
+                            "UPDATE reminders SET last_sent_date = ? WHERE id = ?",
+                            (current_date, r["id"])
+                        )
+                        conn.commit()
+                    except Exception as e:
+                        log.error(f"Failed to send reminder: {e}")
+                        
+        except Exception as e:
+            log.error(f"Reminder loop error: {e}")
+            
+        await asyncio.sleep(60)
 
 def main() -> None:
     init_db()
@@ -926,6 +997,9 @@ def main() -> None:
         await app.initialize()
         await app.start()
         
+        # Start the reminder loop
+        asyncio.create_task(reminder_loop(app))
+        
         # Register commands with Telegram so they appear in the / menu
         from telegram import BotCommand
         commands = [
@@ -936,6 +1010,7 @@ def main() -> None:
             BotCommand("log", "Log notes/information for a topic"),
             BotCommand("ask", "Ask a question about your logged notes"),
             BotCommand("quiz", "Generate a quiz for a topic"),
+            BotCommand("remind", "Set a daily reminder (e.g. /remind dsa 20:00)"),
             BotCommand("reset", "Delete all your data (IRREVERSIBLE)"),
             BotCommand("cancel", "Cancel current action"),
         ]
