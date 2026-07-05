@@ -267,7 +267,7 @@ def generate_quiz(chat_id: int, topic_name: str) -> list[dict] | None:
         f'[{{"question":"...","options":["A","B","C","D"],"correctIndex":0}}]'
     )
     resp = requests.post(
-        f"{COGNEE_API_BASE_URL}/api/v1/recall",
+        f"{COGNEE_BASE_URL}/api/v1/recall",
         headers={"X-Api-Key": COGNEE_API_KEY, "Content-Type": "application/json"},
         json={
             "query": prompt,
@@ -322,7 +322,7 @@ def submit_quiz_feedback(
     )
     try:
         requests.post(
-            f"{COGNEE_API_BASE_URL}/api/v1/remember",
+            f"{COGNEE_BASE_URL}/api/v1/remember",
             headers={"X-Api-Key": COGNEE_API_KEY},
             files={"data": (None, summary)},
             data={
@@ -337,7 +337,7 @@ def submit_quiz_feedback(
 
     try:
         requests.post(
-            f"{COGNEE_API_BASE_URL}/api/v1/improve",
+            f"{COGNEE_BASE_URL}/api/v1/improve",
             headers={"X-Api-Key": COGNEE_API_KEY, "Content-Type": "application/json"},
             json={
                 "dataset_name": dataset_name_for(chat_id),
@@ -352,7 +352,7 @@ def submit_quiz_feedback(
 def reset_memory(chat_id: int) -> None:
     _check_cognee_env()
     requests.post(
-        f"{COGNEE_API_BASE_URL}/api/v1/forget",
+        f"{COGNEE_BASE_URL}/api/v1/forget",
         headers={"X-Api-Key": COGNEE_API_KEY, "Content-Type": "application/json"},
         json={"dataset": dataset_name_for(chat_id), "memory_only": False},
         timeout=120,
